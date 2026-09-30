@@ -1,18 +1,23 @@
 {
-  "name": "minijuegos-party",
+  "name": "partyhub",
   "version": "1.0.0",
   "description": "Party games PWA to play with friends in real-time rooms",
+  "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.18.0"
   },
   "scripts": {
-    "install:all": "npm install --include=dev && npm install --include=dev --prefix server && npm install --include=dev --prefix client",
+    "start": "node server/index.js",
+    "build": "npm install --prefix server",
     "build:client": "npm run build --prefix client",
-    "build": "npm run install:all && npm run build:client",
-    "dev:server": "npm run dev --prefix server",
+    "dev:server": "node --watch server/index.js",
     "dev:client": "npm run dev --prefix client",
-    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
-    "start": "npm start --prefix server"
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\""
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -71,9 +71,9 @@ export const Lobby: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between p-4 max-w-lg mx-auto pb-24">
+    <div className="min-h-screen flex flex-col p-4 max-w-lg mx-auto pb-48">
       {/* Top Bar with Room Code */}
-      <div className="w-full glass-panel rounded-3xl p-4 shadow-xl flex items-center justify-between mb-4">
+      <div className="w-full glass-panel rounded-3xl p-4 shadow-xl flex items-center justify-between mb-4 flex-shrink-0">
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
             Código de Sala
@@ -112,12 +112,12 @@ export const Lobby: React.FC = () => {
       </div>
 
       {/* Players Section */}
-      <div className="w-full mb-4">
+      <div className="w-full mb-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             Jugadores conectados ({room.players.length}/12)
           </span>
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-400 font-medium">
             {isHost ? 'Eres el Anfitrión 👑' : 'Esperando al anfitrión...'}
           </span>
         </div>
@@ -172,28 +172,37 @@ export const Lobby: React.FC = () => {
           )}
         </div>
 
-        {/* Category Filter Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-none">
-          {['Todos', 'Palabras', 'Dibujo', 'Social', 'Velocidad'].map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => {
-                setCategoryFilter(cat);
-                sounds.playClick();
-              }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                categoryFilter === cat
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Category Filter Tabs - Sticky on Mobile */}
+        <div className="sticky top-2 z-20 py-2 -mx-1 px-1 mb-3 bg-slate-950/90 backdrop-blur-md rounded-2xl flex gap-1.5 overflow-x-auto scrollbar-none border border-slate-800/40">
+          {['Todos', 'Palabras', 'Dibujo', 'Social', 'Velocidad'].map((cat) => {
+            const count = cat === 'Todos' ? ALL_GAMES.length : ALL_GAMES.filter(g => g.category === cat).length;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  setCategoryFilter(cat);
+                  sounds.playClick();
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  categoryFilter === cat
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                <span>{cat}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  categoryFilter === cat ? 'bg-indigo-700/80 text-white' : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex flex-col gap-2.5 max-h-[420px] overflow-y-auto pr-1">
+        {/* Full Natural Scrolling Games List */}
+        <div className="flex flex-col gap-3">
           {ALL_GAMES
             .filter((g) => categoryFilter === 'Todos' || g.category === categoryFilter)
             .map((game) => {
@@ -201,35 +210,60 @@ export const Lobby: React.FC = () => {
               return (
                 <div
                   key={game.id}
-                  onClick={() => isHost && selectGame(game.id)}
-                  className={`p-3.5 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden ${
+                  onClick={() => {
+                    if (isHost) {
+                      selectGame(game.id);
+                      sounds.playClick();
+                    }
+                  }}
+                  className={`p-3.5 sm:p-4 rounded-3xl border-2 transition-all relative overflow-hidden flex-shrink-0 ${
+                    isHost ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default'
+                  } ${
                     isSelected
-                      ? `bg-gradient-to-r ${game.gradientBg} ${game.borderActiveColor} shadow-lg scale-[1.01]`
-                      : 'glass-card border-slate-800/80 opacity-60 hover:opacity-90'
+                      ? `bg-gradient-to-r ${game.gradientBg} ${game.borderActiveColor} shadow-xl shadow-indigo-500/15`
+                      : 'glass-card border-slate-800/80 hover:border-slate-700/80 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="text-3xl p-2 bg-slate-900/60 rounded-2xl flex-shrink-0">
-                      {game.emoji}
-                    </span>
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between gap-1">
-                        <h3 className="text-sm font-extrabold text-white truncate">{game.name}</h3>
+                  <div className="flex items-center gap-3.5">
+                    {/* Fixed Emoji Box: never cropped or squished */}
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-900/90 border border-slate-700/60 flex items-center justify-center text-3xl flex-shrink-0 shadow-inner">
+                      <span className="select-none leading-none">{game.emoji}</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1.5 mb-1">
+                        <h3 className="text-sm font-black text-white truncate">
+                          {game.name}
+                        </h3>
                         {isSelected ? (
-                          <span className="px-2 py-0.5 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex-shrink-0">
-                            Elegido
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider flex-shrink-0 flex items-center gap-1 shadow-md shadow-emerald-500/20">
+                            <Check className="w-3 h-3 stroke-[3]" /> Elegido
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-semibold flex-shrink-0">
+                          <span className="text-[10px] text-slate-400 font-bold flex-shrink-0 px-2 py-0.5 rounded-full bg-slate-800/70 border border-slate-700/40">
                             {game.category}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-300 mt-0.5 line-clamp-2">
+
+                      <p className="text-xs text-slate-300 line-clamp-1 leading-snug font-medium">
                         {game.tagline}
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400 font-medium">
-                        <span>👥 {game.recommendedPlayers}</span>
+
+                      <div className="flex items-center justify-between gap-2 mt-1.5 text-[11px] text-slate-400 font-medium">
+                        <span className="flex items-center gap-1">
+                          <span>👥</span> {game.recommendedPlayers}
+                        </span>
+                        {isSelected && !isHost && (
+                          <span className="text-[10px] text-amber-400 font-bold">
+                            Elegido por el anfitrión
+                          </span>
+                        )}
+                        {!isSelected && isHost && (
+                          <span className="text-[10px] text-indigo-400/80 font-semibold">
+                            Toca para elegir
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -362,22 +396,22 @@ export const Lobby: React.FC = () => {
       )}
 
       {/* Floating Bottom Bar: Reactions, Chat & Start Game */}
-      <div className="fixed inset-x-0 bottom-0 p-4 bg-slate-950/90 backdrop-blur-md border-t border-slate-800/80 z-30">
+      <div className="fixed inset-x-0 bottom-0 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,12px))] bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-30 shadow-2xl">
         <div className="max-w-lg mx-auto flex flex-col gap-2.5">
           {/* Quick reactions & Chat toggle */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-0.5">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setShowChat(!showChat)}
-              className={`p-2 rounded-2xl flex items-center gap-1 text-xs font-bold transition-all ${
-                showChat ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              className={`p-2.5 rounded-2xl flex items-center gap-1.5 text-xs font-bold transition-all ${
+                showChat ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
               }`}
             >
               <MessageSquare className="w-4 h-4" />
               {messages.length > 0 && <span className="text-[10px] bg-indigo-500 px-1.5 rounded-full">{messages.length}</span>}
             </button>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
               {QUICK_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}
@@ -396,13 +430,13 @@ export const Lobby: React.FC = () => {
             <button
               type="button"
               onClick={startGame}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all"
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
             >
               <Play className="w-5 h-5 fill-current" />
               ¡Comenzar Partida!
             </button>
           ) : (
-            <div className="w-full py-3 bg-slate-900/90 border border-slate-800 rounded-2xl text-center text-xs font-bold text-slate-400 flex items-center justify-center gap-2">
+            <div className="w-full py-3.5 bg-slate-900/90 border border-slate-800 rounded-2xl text-center text-xs font-bold text-slate-300 flex items-center justify-center gap-2 shadow-inner">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
               Esperando a que el anfitrión inicie el juego...
             </div>

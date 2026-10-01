@@ -120,7 +120,7 @@ export const Home: React.FC = () => {
           PartyHub
         </h1>
         <p className="text-slate-400 text-sm mt-1">
-          Minijuegos para jugar con amigos: Tutti Frutti, El Impostor y La Bomba
+          Minijuegos multijugador para jugar con amigos (9 juegos disponibles)
         </p>
       </header>
 

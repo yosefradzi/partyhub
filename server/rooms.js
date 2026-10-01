@@ -2,6 +2,12 @@
 import { TuttiFruttiGame } from './games/tutifruti.js';
 import { ImpostorGame } from './games/impostor.js';
 import { BombaGame } from './games/bomba.js';
+import { GarticGame } from './games/gartic.js';
+import { HivemindGame } from './games/hivemind.js';
+import { MostLikelyGame } from './games/mostlikely.js';
+import { FibbageGame } from './games/fibbage.js';
+import { FiveSecondsGame } from './games/fiveseconds.js';
+import { TabooGame } from './games/taboo.js';
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -102,6 +108,18 @@ export class Room {
       this.gameInstance = new ImpostorGame(this);
     } else if (this.selectedGame === 'bomba') {
       this.gameInstance = new BombaGame(this);
+    } else if (this.selectedGame === 'gartic') {
+      this.gameInstance = new GarticGame(this);
+    } else if (this.selectedGame === 'hivemind') {
+      this.gameInstance = new HivemindGame(this);
+    } else if (this.selectedGame === 'mostlikely') {
+      this.gameInstance = new MostLikelyGame(this);
+    } else if (this.selectedGame === 'fibbage') {
+      this.gameInstance = new FibbageGame(this);
+    } else if (this.selectedGame === 'fiveseconds') {
+      this.gameInstance = new FiveSecondsGame(this);
+    } else if (this.selectedGame === 'taboo') {
+      this.gameInstance = new TabooGame(this);
     }
 
     if (this.gameInstance) {
@@ -112,6 +130,7 @@ export class Room {
   returnToLobby() {
     if (this.gameInstance?.countdownTimer) clearInterval(this.gameInstance.countdownTimer);
     if (this.gameInstance?.bombTimer) clearInterval(this.gameInstance.bombTimer);
+    if (this.gameInstance?.timer) clearInterval(this.gameInstance.timer);
     
     this.status = 'LOBBY';
     this.gameInstance = null;

@@ -18,13 +18,43 @@ Una **Progressive Web App (PWA)** multijugador en tiempo real diseñada para jug
   * Votación interactiva en vivo entre amigos para aprobar o anular palabras dudosas.
 * **Podio Final:** Animación con fuegos artificiales de confeti y tabla acumulativa de posiciones.
 
-### 2. 🕵️ El Impostor (Deducción Social)
+### 2. 🎨 Teléfono Descompuesto (Estilo Gartic Phone)
+* **Cadena de Dibujo y Adivinanza:** El Jugador 1 escribe una frase loca, el Jugador 2 la dibuja con el dedo en su pantalla táctil, el Jugador 3 adivina qué es solo viendo el dibujo, y el Jugador 4 dibuja la adivinanza...
+* **Lienzo Interactivo:** Paleta de colores, tamaños de pincel, borrador, deshacer y envío en tiempo real.
+* **Presentación de Álbum:** Al final, la app muestra una galería animada paso a paso de cómo fue mutando la frase original. ¡Risas aseguradas!
+
+### 3. 👥 Mente Colectiva (Hivemind)
+* **Objetivo Opuesto:** No se trata de ser original, sino de **pensar igual que la mayoría**.
+* **Preguntas de Cultura Popular:** *"Una película clásica de terror"*, *"Un ingrediente polémico para pizza"*.
+* **Puntuación Grupal:** Si coinciden en la respuesta más votada, todos ellos se llevan **+10 pts**. Las respuestas aisladas reciben 0 puntos.
+
+### 4. ⚖️ ¿Quién es Más Probable Que...? (Frases de los Jugadores)
+* **Preguntas Creadas por los Participantes:** Antes de empezar, cada jugador escribe sus propias preguntas picantes o graciosas sobre el grupo.
+* **Votación Secreta:** La app mezcla las preguntas y todos votan en secreto a quién describe mejor.
+* **Revelación en Vivo:** Muestra quién fue el más votado (+10 pts) y el desglose de *"Quién votó a quién"* para desatar el debate.
+
+### 5. 🎭 Cazador de Mentiras (Estilo Fibbage / Jackbox)
+* **Trivias Insólitas con Huecos:** *"En Suiza fue multado un hombre por pasear a su ________ por la calle"*.
+* **Fase de Engaño:** Cada jugador inventa una mentira creíble para engañar a los demás.
+* **Fase de Votación:** Se mezclan las mentiras con la respuesta real. Sumas **+10 pts** si descubres la verdad y **+5 pts** por cada amigo que cayó en tu mentira.
+
+### 6. ⏱️ 5 Segundos (5 Second Rule)
+* **El Banquillo de los Acusados:** Turnos rotativos rápidos. La app lanza un reto: *"¡Nombra 3 marcas de autos!"*.
+* **Cronómetro Explosivo de 5s:** Con sonido de mecha y tic-tac rápido.
+* **Votación de los Amigos:** Los demás pulsan en sus móviles *"Aprobado (+10 pts)"* o *"Reprobado"* para decidir si el jugador llegó a tiempo.
+
+### 7. 🤐 Tabú (Palabras Prohibidas)
+* **60 Segundos de Pistas:** El jugador que describe debe hacer que sus compañeros adivinen la palabra objetivo.
+* **Palabras Prohibidas (Tabú):** En pantalla se muestran 5 palabras clave que NO puede pronunciar.
+* **Modo Árbitro:** Los demás jugadores ven la lista de palabras prohibidas en sus móviles para vigilar y penalizar si el hablante se equivoca.
+
+### 8. 🕵️ El Impostor (Deducción Social)
 * **Tarjeta Secreta:** Mantén pulsada la pantalla para revelar la palabra secreta en privado.
 * **El Impostor:** 1 o 2 jugadores reciben únicamente la categoría y el rol de impostor.
 * **Debate y Votación:** Ronda de pistas en vivo y votación para descubrir al sospechoso.
 * **Robo de Victoria:** Si descubren al impostor, este tiene una última oportunidad de ganar si adivina la palabra secreta.
 
-### 3. 💣 La Bomba de Palabras (Contrarreloj)
+### 9. 💣 La Bomba de Palabras (Contrarreloj)
 * **Reto por Sílabas:** La pantalla muestra una sílaba (ej: *"Contiene MA"*).
 * **Mecha y Reloj:** La bomba pasa de jugador a jugador en tiempo real.
 * **3 Vidas (❤️❤️❤️):** Si se acaba el tiempo antes de escribir una palabra válida, ¡la bomba estalla y pierdes una vida! El último sobreviviente se lleva la victoria.

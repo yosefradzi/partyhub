@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import type { RoomState, Player, ReactionEvent, ChatMessage } from '../types';
+import type { RoomState, Player, ReactionEvent, ChatMessage, GameId } from '../types';
 import { sounds } from '../utils/soundEffects';
 
 interface SocketContextValue {
@@ -14,7 +14,7 @@ interface SocketContextValue {
   createRoom: (playerData: { name: string; avatar: string; color: string }) => Promise<{ success: boolean; code?: string; error?: string }>;
   joinRoom: (code: string, playerData: { name: string; avatar: string; color: string }) => Promise<{ success: boolean; error?: string }>;
   leaveRoom: () => void;
-  selectGame: (gameId: 'tutifruti' | 'impostor' | 'bomba') => void;
+  selectGame: (gameId: GameId) => void;
   updateSettings: (settings: Partial<RoomState['settings']>) => void;
   startGame: () => void;
   returnToLobby: () => void;
@@ -109,7 +109,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const selectGame = (gameId: 'tutifruti' | 'impostor' | 'bomba') => {
+  const selectGame = (gameId: GameId) => {
     if (socket && isHost) {
       socket.emit('room:select_game', { gameId });
       sounds.playClick();

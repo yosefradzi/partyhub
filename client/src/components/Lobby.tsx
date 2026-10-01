@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { usePartySocket } from '../context/SocketContext';
 import { Copy, Check, Share2, Crown, Play, Settings as SettingsIcon, LogOut, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
-import { DEFAULT_CATEGORIES, QUICK_EMOJIS } from '../constants';
+import { DEFAULT_CATEGORIES, QUICK_EMOJIS, ALL_GAMES } from '../constants';
 
 export const Lobby: React.FC = () => {
   const { room, isHost, selectGame, updateSettings, startGame, leaveRoom, sendReaction, sendMessage, messages } = usePartySocket();
@@ -12,6 +12,7 @@ export const Lobby: React.FC = () => {
   const [showChat, setShowChat] = useState<boolean>(false);
   const [chatInput, setChatInput] = useState<string>('');
   const [newCategory, setNewCategory] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('Todos');
 
   if (!room) return null;
 
@@ -171,98 +172,70 @@ export const Lobby: React.FC = () => {
           )}
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          {/* Tutti Frutti Card */}
-          <div
-            onClick={() => isHost && selectGame('tutifruti')}
-            className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden ${
-              room.selectedGame === 'tutifruti'
-                ? 'bg-gradient-to-r from-amber-500/20 via-pink-500/20 to-indigo-500/20 border-amber-400 shadow-lg shadow-amber-500/10'
-                : 'glass-card border-slate-800 opacity-60 hover:opacity-85'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-3xl p-2 bg-amber-400/20 rounded-2xl">🍍</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-extrabold text-white">Tutti Frutti / Basta / Stop</h3>
-                  {room.selectedGame === 'tutifruti' && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-900 font-bold text-[10px]">
-                      Seleccionado
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Completa las categorías con la letra elegida y pulsa ¡STOP! antes que tus amigos.
-                </p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-amber-300 font-medium">
-                  <span>⏱️ {room.settings.rounds} Rondas</span>
-                  <span>•</span>
-                  <span>📝 {currentCategories.length} Categorías</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Category Filter Tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-none">
+          {['Todos', 'Palabras', 'Dibujo', 'Social', 'Velocidad'].map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => {
+                setCategoryFilter(cat);
+                sounds.playClick();
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                categoryFilter === cat
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
 
-          {/* El Impostor Card */}
-          <div
-            onClick={() => isHost && selectGame('impostor')}
-            className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden ${
-              room.selectedGame === 'impostor'
-                ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-purple-400 shadow-lg shadow-purple-500/10'
-                : 'glass-card border-slate-800 opacity-60 hover:opacity-85'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-3xl p-2 bg-purple-400/20 rounded-2xl">🕵️</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-extrabold text-white">El Impostor</h3>
-                  {room.selectedGame === 'impostor' && (
-                    <span className="px-2 py-0.5 rounded-full bg-purple-400 text-slate-900 font-bold text-[10px]">
-                      Seleccionado
+        <div className="flex flex-col gap-2.5 max-h-[420px] overflow-y-auto pr-1">
+          {ALL_GAMES
+            .filter((g) => categoryFilter === 'Todos' || g.category === categoryFilter)
+            .map((game) => {
+              const isSelected = room.selectedGame === game.id;
+              return (
+                <div
+                  key={game.id}
+                  onClick={() => isHost && selectGame(game.id)}
+                  className={`p-3.5 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden ${
+                    isSelected
+                      ? `bg-gradient-to-r ${game.gradientBg} ${game.borderActiveColor} shadow-lg scale-[1.01]`
+                      : 'glass-card border-slate-800/80 opacity-60 hover:opacity-90'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-3xl p-2 bg-slate-900/60 rounded-2xl flex-shrink-0">
+                      {game.emoji}
                     </span>
-                  )}
+                    <div className="flex-1 overflow-hidden">
+                      <div className="flex items-center justify-between gap-1">
+                        <h3 className="text-sm font-extrabold text-white truncate">{game.name}</h3>
+                        {isSelected ? (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex-shrink-0">
+                            Elegido
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-semibold flex-shrink-0">
+                            {game.category}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-300 mt-0.5 line-clamp-2">
+                        {game.tagline}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400 font-medium">
+                        <span>👥 {game.recommendedPlayers}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Deducción social: todos conocen la palabra secreta excepto el impostor. ¡Descúbranlo!
-                </p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-purple-300 font-medium">
-                  <span>👥 Mínimo 3 jugadores recomendado</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* La Bomba Card */}
-          <div
-            onClick={() => isHost && selectGame('bomba')}
-            className={`p-4 rounded-3xl border-2 transition-all cursor-pointer relative overflow-hidden ${
-              room.selectedGame === 'bomba'
-                ? 'bg-gradient-to-r from-red-500/20 to-orange-500/20 border-red-400 shadow-lg shadow-red-500/10'
-                : 'glass-card border-slate-800 opacity-60 hover:opacity-85'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-3xl p-2 bg-red-400/20 rounded-2xl">💣</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-extrabold text-white">La Bomba de Palabras</h3>
-                  {room.selectedGame === 'bomba' && (
-                    <span className="px-2 py-0.5 rounded-full bg-red-400 text-slate-900 font-bold text-[10px]">
-                      Seleccionado
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Di una palabra que contenga la sílaba antes de que la bomba estalle en tus manos.
-                </p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-red-300 font-medium">
-                  <span>❤️ 3 Vidas por jugador</span>
-                </div>
-              </div>
-            </div>
-          </div>
+              );
+            })}
         </div>
       </div>
 

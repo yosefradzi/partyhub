@@ -141,7 +141,7 @@ export const Home: React.FC = () => {
             <input
               type="text"
               maxLength={15}
-              placeholder="Ej: Marcos, Sofi..."
+              placeholder="Ej: Messi, Moshe, Cristiano..."
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"

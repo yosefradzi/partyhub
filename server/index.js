@@ -141,6 +141,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('tutifruti:set_review_category', ({ categoryIndex }) => {
+    const code = socket.data.roomCode;
+    const room = roomManager.getRoom(code);
+    if (room && room.gameInstance?.id === 'tutifruti' && room.hostId === socket.id) {
+      room.gameInstance.setReviewCategory(categoryIndex);
+    }
+  });
+
+  socket.on('tutifruti:next_category', () => {
+    const code = socket.data.roomCode;
+    const room = roomManager.getRoom(code);
+    if (room && room.gameInstance?.id === 'tutifruti' && room.hostId === socket.id) {
+      room.gameInstance.nextReviewCategory();
+    }
+  });
+
   socket.on('tutifruti:finalize_voting', () => {
     const code = socket.data.roomCode;
     const room = roomManager.getRoom(code);

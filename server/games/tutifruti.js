@@ -27,7 +27,8 @@ export class TuttiFruttiGame {
     this.phase = 'LETTER_SPIN'; // LETTER_SPIN | PLAYING | COUNTDOWN_STOP | VOTING | ROUND_RESULTS | FINAL_PODIUM
     this.stopCaller = null;
     this.countdownTimer = null;
-    this.countdownSeconds = 10;
+    this.countdownSeconds = 3;
+    this.reviewCategoryIndex = 0;
     
     // Submissions: { [playerId]: { [category]: string } }
     this.submissions = {};
@@ -63,10 +64,11 @@ export class TuttiFruttiGame {
 
     this.phase = 'LETTER_SPIN';
     this.stopCaller = null;
+    this.reviewCategoryIndex = 0;
     this.submissions = {};
     this.reviews = {};
     this.roundScores = {};
-    this.countdownSeconds = 10;
+    this.countdownSeconds = 3;
     if (this.countdownTimer) clearInterval(this.countdownTimer);
 
     for (const pid of this.room.players.keys()) {
@@ -103,7 +105,7 @@ export class TuttiFruttiGame {
 
     this.phase = 'COUNTDOWN_STOP';
     this.stopCaller = { id: playerId, name: player.name, avatar: player.avatar };
-    this.countdownSeconds = 10;
+    this.countdownSeconds = 3;
 
     this.room.broadcastState();
 
@@ -124,6 +126,7 @@ export class TuttiFruttiGame {
 
   finishPlayingPhase() {
     this.phase = 'VOTING';
+    this.reviewCategoryIndex = 0;
     this.calculateInitialReviews();
     this.room.broadcastState();
   }
@@ -252,6 +255,21 @@ export class TuttiFruttiGame {
     this.startRound();
   }
 
+  setReviewCategory(categoryIndex) {
+    if (this.phase !== 'VOTING') return;
+    const idx = Math.max(0, Math.min(this.categories.length - 1, Number(categoryIndex) || 0));
+    this.reviewCategoryIndex = idx;
+    this.room.broadcastState();
+  }
+
+  nextReviewCategory() {
+    if (this.phase !== 'VOTING') return;
+    if (this.reviewCategoryIndex < this.categories.length - 1) {
+      this.reviewCategoryIndex += 1;
+      this.room.broadcastState();
+    }
+  }
+
   getStateForPlayer(playerId) {
     return {
       gameId: this.id,
@@ -263,6 +281,7 @@ export class TuttiFruttiGame {
       phase: this.phase,
       stopCaller: this.stopCaller,
       countdownSeconds: this.countdownSeconds,
+      reviewCategoryIndex: this.reviewCategoryIndex,
       // In PLAYING phase, each player only sees their own draft inputs
       mySubmissions: this.submissions[playerId] || {},
       // In VOTING, ROUND_RESULTS and FINAL_PODIUM, everyone sees all submissions & reviews

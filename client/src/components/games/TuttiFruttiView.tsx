@@ -11,7 +11,7 @@ export const TuttiFruttiView: React.FC = () => {
 
   const [localInputs, setLocalInputs] = useState<Record<string, string>>({});
   const [spinLetter, setSpinLetter] = useState<string>('?');
-  const [votingCategoryIndex, setVotingCategoryIndex] = useState<number>(0);
+  const votingCategoryIndex = gameState?.reviewCategoryIndex ?? 0;
 
   // Sync inputs with state when a new round starts
   useEffect(() => {
@@ -80,6 +80,20 @@ export const TuttiFruttiView: React.FC = () => {
   const handleToggleValidation = (reviewKey: string) => {
     if (socket && gameState.phase === 'VOTING') {
       socket.emit('tutifruti:toggle_validation', { reviewKey });
+      sounds.playClick();
+    }
+  };
+
+  const handleSetCategoryIndex = (categoryIndex: number) => {
+    if (socket && isHost && gameState.phase === 'VOTING') {
+      socket.emit('tutifruti:set_review_category', { categoryIndex });
+      sounds.playClick();
+    }
+  };
+
+  const handleNextCategory = () => {
+    if (socket && isHost && gameState.phase === 'VOTING') {
+      socket.emit('tutifruti:next_category');
       sounds.playClick();
     }
   };
@@ -250,14 +264,12 @@ export const TuttiFruttiView: React.FC = () => {
             <button
               key={i}
               type="button"
-              onClick={() => {
-                setVotingCategoryIndex(i);
-                sounds.playClick();
-              }}
+              disabled={!isHost}
+              onClick={() => handleSetCategoryIndex(i)}
               className={`px-3 py-1.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
                 votingCategoryIndex === i
-                  ? 'bg-amber-400 text-slate-950 shadow-md'
-                  : 'bg-slate-900 text-slate-400 hover:text-white'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-105'
+                  : 'bg-slate-900 text-slate-400 ' + (isHost ? 'hover:text-white cursor-pointer' : 'cursor-default opacity-60')
               }`}
             >
               {i + 1}. {c}
@@ -329,29 +341,29 @@ export const TuttiFruttiView: React.FC = () => {
         {/* Navigation / Host Confirm Action */}
         <div className="fixed inset-x-0 bottom-0 p-4 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 z-30">
           <div className="max-w-lg mx-auto flex items-center gap-3">
-            {votingCategoryIndex < categories.length - 1 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setVotingCategoryIndex((prev) => prev + 1);
-                  sounds.playClick();
-                }}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2"
-              >
-                Siguiente Categoría <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : isHost ? (
-              <button
-                type="button"
-                onClick={handleFinalizeVoting}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2"
-              >
-                <CheckCircle className="w-5 h-5" />
-                Confirmar Puntos de la Ronda
-              </button>
+            {isHost ? (
+              votingCategoryIndex < categories.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={handleNextCategory}
+                  className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  Siguiente Categoría ({votingCategoryIndex + 2}/{categories.length}) <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleFinalizeVoting}
+                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Confirmar Puntos de la Ronda
+                </button>
+              )
             ) : (
-              <div className="w-full py-3 text-center text-xs font-semibold text-slate-400">
-                Esperando a que el anfitrión confirme los puntos...
+              <div className="w-full py-3 px-4 text-center text-xs font-semibold text-slate-300 bg-slate-900/90 rounded-2xl border border-slate-800 flex items-center justify-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span>Revisando categoría {votingCategoryIndex + 1} de {categories.length} (esperando al anfitrión...)</span>
               </div>
             )}
           </div>

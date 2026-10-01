@@ -35,6 +35,7 @@ export interface TuttiFruttiState {
   phase: 'LETTER_SPIN' | 'PLAYING' | 'COUNTDOWN_STOP' | 'VOTING' | 'ROUND_RESULTS' | 'FINAL_PODIUM';
   stopCaller: { id: string; name: string; avatar: string } | null;
   countdownSeconds: number;
+  reviewCategoryIndex?: number;
   mySubmissions: Record<string, string>;
   allSubmissions: Record<string, Record<string, string>> | null;
   reviews: Record<string, TuttiFruttiReviewItem> | null;

@@ -173,7 +173,7 @@ export const BombaView: React.FC = () => {
             ¡Ganador: {room.players.find(p => p.id === gameState.winnerId)?.name || 'Nadie'}!
           </p>
 
-          {isHost && (
+          {isHost ? (
             <button
               type="button"
               onClick={returnToLobby}
@@ -182,6 +182,10 @@ export const BombaView: React.FC = () => {
               <Home className="w-4 h-4" />
               Volver a la Sala
             </button>
+          ) : (
+            <p className="text-xs text-slate-400 animate-pulse mt-4">
+              Esperando al anfitrión para volver a la sala...
+            </p>
           )}
         </div>
       )}

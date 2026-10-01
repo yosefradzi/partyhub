@@ -171,14 +171,18 @@ export const FiveSecondsView: React.FC = () => {
                 </>
               )}
 
-              {isHost && (
+              {isHost ? (
                 <button
                   type="button"
                   onClick={handleNextTurn}
-                  className="mt-4 w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2"
+                  className="mt-4 w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
                 >
                   Siguiente Turno <ArrowRight className="w-4 h-4" />
                 </button>
+              ) : (
+                <p className="text-xs text-slate-400 animate-pulse mt-4">
+                  Esperando al anfitrión para pasar al siguiente turno...
+                </p>
               )}
             </div>
           )}
@@ -212,7 +216,7 @@ export const FiveSecondsView: React.FC = () => {
             ))}
           </div>
 
-          {isHost && (
+          {isHost ? (
             <button
               type="button"
               onClick={returnToLobby}
@@ -220,6 +224,10 @@ export const FiveSecondsView: React.FC = () => {
             >
               <Home className="w-4 h-4" /> Volver a la Sala
             </button>
+          ) : (
+            <p className="text-xs text-slate-400 animate-pulse">
+              Esperando al anfitrión para volver a la sala...
+            </p>
           )}
         </div>
       )}

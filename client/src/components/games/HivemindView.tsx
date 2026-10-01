@@ -185,7 +185,7 @@ export const HivemindView: React.FC = () => {
             ))}
           </div>
 
-          {isHost && (
+          {isHost ? (
             <button
               type="button"
               onClick={returnToLobby}
@@ -193,6 +193,10 @@ export const HivemindView: React.FC = () => {
             >
               <Home className="w-4 h-4" /> Volver a la Sala
             </button>
+          ) : (
+            <p className="text-xs text-slate-400 animate-pulse">
+              Esperando al anfitrión para volver a la sala...
+            </p>
           )}
         </div>
       )}

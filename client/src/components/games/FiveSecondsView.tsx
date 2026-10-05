@@ -29,20 +29,31 @@ export const FiveSecondsView: React.FC = () => {
   const isMyTurn = gameState.isMyTurn;
   const activePlayer = room.players.find(p => p.id === gameState.activePlayerId);
 
+  const [votedLocal, setVotedLocal] = React.useState<boolean>(false);
+  const [isAdvancing, setIsAdvancing] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    setVotedLocal(false);
+    setIsAdvancing(false);
+  }, [gameState.phase, gameState.currentCycle, gameState.activePlayerId]);
+
   const handleStartCountdown = () => {
-    if (!socket) return;
+    if (!socket || isAdvancing) return;
+    setIsAdvancing(true);
     socket.emit('fiveseconds:start_countdown');
     sounds.playLetterReveal();
   };
 
   const handleVote = (isApproved: boolean) => {
-    if (!socket || gameState.phase !== 'VOTING') return;
+    if (!socket || gameState.phase !== 'VOTING' || votedLocal) return;
+    setVotedLocal(true);
     socket.emit('fiveseconds:vote', { isApproved });
     sounds.playClick();
   };
 
   const handleNextTurn = () => {
-    if (!socket || !isHost) return;
+    if (!socket || !isHost || isAdvancing) return;
+    setIsAdvancing(true);
     socket.emit('fiveseconds:next_turn');
     sounds.playClick();
   };
@@ -118,30 +129,39 @@ export const FiveSecondsView: React.FC = () => {
               </span>
 
               {!isMyTurn ? (
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleVote(true)}
-                    className={`py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-1.5 transition-all ${
-                      gameState.votes[myPlayer?.id || ''] === 'YES'
-                        ? 'bg-emerald-500 text-slate-950 scale-105 shadow-lg'
-                        : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40'
-                    }`}
-                  >
-                    <Check className="w-5 h-5" /> Aprobado (+10)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleVote(false)}
-                    className={`py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-1.5 transition-all ${
-                      gameState.votes[myPlayer?.id || ''] === 'NO'
-                        ? 'bg-red-500 text-white scale-105 shadow-lg'
-                        : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40'
-                    }`}
-                  >
-                    <X className="w-5 h-5" /> No llegó (0)
-                  </button>
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                      type="button"
+                      disabled={votedLocal || Boolean(gameState.votes[myPlayer?.id || ''])}
+                      onClick={() => handleVote(true)}
+                      className={`py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-1.5 transition-all ${
+                        gameState.votes[myPlayer?.id || ''] === 'YES' || votedLocal
+                          ? 'bg-emerald-500 text-slate-950 scale-105 shadow-lg'
+                          : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 active:scale-95'
+                      }`}
+                    >
+                      <Check className="w-5 h-5" /> Aprobado (+10)
+                    </button>
+                    <button
+                      type="button"
+                      disabled={votedLocal || Boolean(gameState.votes[myPlayer?.id || ''])}
+                      onClick={() => handleVote(false)}
+                      className={`py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-1.5 transition-all ${
+                        gameState.votes[myPlayer?.id || ''] === 'NO'
+                          ? 'bg-red-500 text-white scale-105 shadow-lg'
+                          : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/40 active:scale-95'
+                      }`}
+                    >
+                      <X className="w-5 h-5" /> No llegó (0)
+                    </button>
+                  </div>
+                  {(votedLocal || Boolean(gameState.votes[myPlayer?.id || ''])) && (
+                    <div className="mt-2 py-2 px-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                      <span>✓ Voto registrado • Esperando a los demás jugadores...</span>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="p-3 bg-slate-900 rounded-xl text-xs text-slate-400 animate-pulse">
                   Esperando el veredicto del grupo...

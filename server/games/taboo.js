@@ -68,6 +68,9 @@ export class TabooGame {
 
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('taboo:tick', {
         secondsRemaining: this.secondsRemaining
       });
@@ -159,7 +162,8 @@ export class TabooGame {
         word: isDescriber ? currentCard.word : '??? (¡Adivinen!)',
         forbidden: currentCard.forbidden
       } : null,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds: [activePid]
     };
   }
 }

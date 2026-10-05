@@ -115,6 +115,9 @@ export class TuttiFruttiGame {
         seconds: this.countdownSeconds,
         caller: this.stopCaller
       });
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.countdownSeconds
+      });
 
       if (this.countdownSeconds <= 0) {
         clearInterval(this.countdownTimer);
@@ -271,6 +274,16 @@ export class TuttiFruttiGame {
   }
 
   getStateForPlayer(playerId) {
+    const completedPlayerIds = [];
+    if (this.stopCaller) {
+      completedPlayerIds.push(this.stopCaller.id);
+    }
+    for (const [pid, answers] of Object.entries(this.submissions)) {
+      if (answers && Object.keys(answers).filter(k => (answers[k] || '').trim().length > 0).length >= this.categories.length) {
+        if (!completedPlayerIds.includes(pid)) completedPlayerIds.push(pid);
+      }
+    }
+
     return {
       gameId: this.id,
       name: this.name,
@@ -288,7 +301,8 @@ export class TuttiFruttiGame {
       allSubmissions: (this.phase === 'VOTING' || this.phase === 'ROUND_RESULTS' || this.phase === 'FINAL_PODIUM') ? this.submissions : null,
       reviews: (this.phase === 'VOTING' || this.phase === 'ROUND_RESULTS' || this.phase === 'FINAL_PODIUM') ? this.reviews : null,
       roundScores: this.roundScores,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds
     };
   }
 }

@@ -69,6 +69,9 @@ export class HivemindGame {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('hivemind:tick', {
         secondsRemaining: this.secondsRemaining
       });
@@ -87,6 +90,7 @@ export class HivemindGame {
     if (this.phase !== 'THINKING') return;
     this.submissions[playerId] = (answer || '').trim();
     this.room.broadcastPlayerProgress(playerId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.submissions).length >= this.room.players.size) {
       if (this.timer) clearInterval(this.timer);
@@ -176,7 +180,8 @@ export class HivemindGame {
       clusters: this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM' ? this.clusters : null,
       submissions: this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM' ? this.submissions : null,
       roundScores: this.roundScores,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds: Object.keys(this.submissions)
     };
   }
 }

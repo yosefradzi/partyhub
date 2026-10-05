@@ -195,7 +195,7 @@ export interface TabooState {
   cumulativeScores: Record<string, number>;
 }
 
-export type AnyGameState = 
+export type AnyGameState = (
   | TuttiFruttiState 
   | ImpostorState 
   | BombaState 
@@ -204,7 +204,17 @@ export type AnyGameState =
   | MostLikelyState 
   | FibbageState 
   | FiveSecondsState 
-  | TabooState;
+  | TabooState
+) & {
+  completedPlayerIds?: string[];
+};
+
+export interface IntroState {
+  active: boolean;
+  secondsRemaining: number;
+  skips: string[];
+  totalPlayers: number;
+}
 
 export interface RoomState {
   code: string;
@@ -214,6 +224,7 @@ export interface RoomState {
   status: 'LOBBY' | 'PLAYING';
   settings: RoomSettings;
   gameState: AnyGameState | null;
+  introState?: IntroState | null;
 }
 
 export interface ReactionEvent {

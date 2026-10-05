@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePartySocket } from '../../context/SocketContext';
 import type { ImpostorState } from '../../types';
 import { sounds } from '../../utils/soundEffects';
@@ -10,28 +10,38 @@ export const ImpostorView: React.FC = () => {
 
   const [revealed, setRevealed] = useState<boolean>(false);
   const [guessInput, setGuessInput] = useState<string>('');
+  const [votedPlayerIdLocal, setVotedPlayerIdLocal] = useState<string | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
+
+  useEffect(() => {
+    setVotedPlayerIdLocal(null);
+    setIsAdvancing(false);
+  }, [gameState?.phase]);
 
   if (!gameState || !room || !myPlayer) return null;
 
   const isImpostor = gameState.isImpostor;
-  const isMyVote = (targetId: string) => gameState.votes[myPlayer.id] === targetId;
+  const isMyVote = (targetId: string) => (votedPlayerIdLocal || gameState.votes[myPlayer.id]) === targetId;
 
   const handleStartDiscussion = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('impostor:start_discussion');
       sounds.playClick();
     }
   };
 
   const handleStartVoting = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('impostor:start_voting');
       sounds.playClick();
     }
   };
 
   const handleVote = (targetPlayerId: string) => {
-    if (socket && gameState.phase === 'VOTING') {
+    if (socket && gameState.phase === 'VOTING' && !votedPlayerIdLocal && !gameState.votes[myPlayer.id]) {
+      setVotedPlayerIdLocal(targetPlayerId);
       socket.emit('impostor:vote', { targetPlayerId });
       sounds.playClick();
     }
@@ -39,8 +49,9 @@ export const ImpostorView: React.FC = () => {
 
   const handleGuessSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guessInput.trim()) return;
+    if (!guessInput.trim() || isAdvancing) return;
     if (socket && gameState.phase === 'GUESS_WORD') {
+      setIsAdvancing(true);
       socket.emit('impostor:guess_word', { guess: guessInput.trim() });
       sounds.playSuccess();
     }
@@ -155,29 +166,36 @@ export const ImpostorView: React.FC = () => {
           <div className="grid grid-cols-2 gap-2.5">
             {room.players.map((p) => {
               const votedThis = isMyVote(p.id);
+              const hasVotedAny = Boolean(votedPlayerIdLocal || gameState.votes[myPlayer.id]);
               return (
                 <button
                   key={p.id}
                   type="button"
+                  disabled={hasVotedAny}
                   onClick={() => handleVote(p.id)}
                   className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${
                     votedThis
                       ? 'bg-pink-600/30 border-pink-500 shadow-lg shadow-pink-500/20 scale-105'
-                      : 'glass-card border-slate-800 hover:border-slate-600'
+                      : 'glass-card border-slate-800 hover:border-slate-600 active:scale-95'
                   }`}
                 >
                   <span className="text-4xl">{p.avatar}</span>
                   <span className="text-xs font-bold text-white truncate max-w-full">{p.name}</span>
                   {votedThis && (
-                    <span className="text-[10px] bg-pink-500 text-white px-2 py-0.5 rounded-full font-black">
-                      Tu Voto
+                    <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black">
+                      ✓ Votado
                     </span>
                   )}
                 </button>
               );
             })}
           </div>
-          <p className="text-xs text-slate-400 mt-2">
+          {Boolean(votedPlayerIdLocal || gameState.votes[myPlayer.id]) && (
+            <div className="py-2 px-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 font-bold flex items-center justify-center gap-1.5 animate-pulse mt-2">
+              <span>✓ Voto registrado • Esperando a los demás jugadores...</span>
+            </div>
+          )}
+          <p className="text-xs text-slate-400 mt-1">
             Votos emitidos: {Object.keys(gameState.votes).length}/{room.players.length}
           </p>
         </div>

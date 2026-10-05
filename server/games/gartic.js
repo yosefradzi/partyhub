@@ -48,6 +48,9 @@ export class GarticGame {
 
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('gartic:tick', {
         secondsRemaining: this.secondsRemaining,
         step: this.currentStep
@@ -66,6 +69,7 @@ export class GarticGame {
     const cleanText = (text || '').trim() || 'Un marciano bailando tango';
     this.stepSubmissions[playerId] = cleanText;
     this.room.broadcastPlayerProgress(playerId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.stepSubmissions).length >= this.playersOrder.length) {
       if (this.timer) clearInterval(this.timer);
@@ -131,6 +135,7 @@ export class GarticGame {
     if (this.phase !== 'IN_PROGRESS') return;
     this.stepSubmissions[playerId] = content;
     this.room.broadcastPlayerProgress(playerId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.stepSubmissions).length >= this.playersOrder.length) {
       if (this.timer) clearInterval(this.timer);
@@ -222,7 +227,8 @@ export class GarticGame {
       presentationChainAuthor: this.phase === 'PRESENTATION' ? this.playersOrder[this.presentationChainIndex] : null,
       presentationChainIndex: this.presentationChainIndex,
       presentationStepIndex: this.presentationStepIndex,
-      playersOrder: this.playersOrder
+      playersOrder: this.playersOrder,
+      completedPlayerIds: (this.phase === 'PROMPT_INPUT' || this.phase === 'IN_PROGRESS') ? Object.keys(this.stepSubmissions) : []
     };
   }
 }

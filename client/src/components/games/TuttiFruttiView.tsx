@@ -13,8 +13,13 @@ export const TuttiFruttiView: React.FC = () => {
   const [spinLetter, setSpinLetter] = useState<string>('?');
   const votingCategoryIndex = gameState?.reviewCategoryIndex ?? 0;
 
+  const [isCallingStopLocal, setIsCallingStopLocal] = useState<boolean>(false);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
+
   // Sync inputs with state when a new round starts
   useEffect(() => {
+    setIsCallingStopLocal(false);
+    setIsAdvancing(false);
     if (gameState?.phase === 'LETTER_SPIN') {
       setLocalInputs({});
       sounds.playLetterReveal();
@@ -70,7 +75,8 @@ export const TuttiFruttiView: React.FC = () => {
   };
 
   const handleCallStop = () => {
-    if (gameState.phase !== 'PLAYING') return;
+    if (gameState.phase !== 'PLAYING' || isCallingStopLocal) return;
+    setIsCallingStopLocal(true);
     if (socket) {
       socket.emit('tutifruti:call_stop');
       sounds.playStopAlarm();
@@ -92,21 +98,25 @@ export const TuttiFruttiView: React.FC = () => {
   };
 
   const handleNextCategory = () => {
-    if (socket && isHost && gameState.phase === 'VOTING') {
+    if (socket && isHost && gameState.phase === 'VOTING' && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('tutifruti:next_category');
       sounds.playClick();
+      setTimeout(() => setIsAdvancing(false), 500);
     }
   };
 
   const handleFinalizeVoting = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('tutifruti:finalize_voting');
       sounds.playSuccess();
     }
   };
 
   const handleNextRound = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('tutifruti:next_round');
       sounds.playClick();
     }
@@ -213,18 +223,27 @@ export const TuttiFruttiView: React.FC = () => {
           <div className="max-w-lg mx-auto">
             <button
               type="button"
-              disabled={isCountdown || filledCount === 0}
+              disabled={isCountdown || isCallingStopLocal || filledCount === 0}
               onClick={handleCallStop}
               className={`w-full py-4 rounded-3xl font-black text-lg tracking-wider uppercase shadow-2xl flex items-center justify-center gap-3 transition-all ${
-                isCountdown
-                  ? 'bg-red-950 text-red-400 border border-red-800 opacity-60 cursor-not-allowed'
+                isCountdown || isCallingStopLocal
+                  ? 'bg-red-950 text-red-400 border border-red-800 opacity-80 cursor-not-allowed animate-pulse'
                   : filledCount === 0
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-red-600 via-rose-500 to-amber-600 text-white shadow-red-600/40 animate-glow hover:scale-[1.02] active:scale-95'
               }`}
             >
-              <Flame className="w-6 h-6 fill-current animate-bounce" />
-              ¡BASTA PARA TODOS! (STOP 🛑)
+              {isCountdown || isCallingStopLocal ? (
+                <>
+                  <CheckCircle className="w-6 h-6 text-emerald-400" />
+                  <span>¡BASTA Cantado! ✓ ({gameState.countdownSeconds}s)</span>
+                </>
+              ) : (
+                <>
+                  <Flame className="w-6 h-6 fill-current animate-bounce" />
+                  <span>¡BASTA PARA TODOS! (STOP 🛑)</span>
+                </>
+              )}
             </button>
           </div>
         </div>

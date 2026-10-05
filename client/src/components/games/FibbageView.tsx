@@ -3,17 +3,26 @@ import { usePartySocket } from '../../context/SocketContext';
 import type { FibbageState } from '../../types';
 import { sounds } from '../../utils/soundEffects';
 import confetti from 'canvas-confetti';
-import { ArrowRight, Home, Sparkles } from 'lucide-react';
+import { ArrowRight, Home, CheckCircle } from 'lucide-react';
 
 export const FibbageView: React.FC = () => {
   const { room, socket, isHost, returnToLobby } = usePartySocket();
   const gameState = room?.gameState as FibbageState | null;
 
   const [bluffInput, setBluffInput] = useState<string>('');
+  const [isSubmittedBluffLocal, setIsSubmittedBluffLocal] = useState<boolean>(false);
+  const [votedChoiceIdLocal, setVotedChoiceIdLocal] = useState<string | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
 
   useEffect(() => {
     if (gameState?.phase === 'BLUFFING') {
       setBluffInput('');
+      setIsSubmittedBluffLocal(false);
+      setVotedChoiceIdLocal(null);
+      setIsAdvancing(false);
+    } else if (gameState?.phase === 'CHOOSING') {
+      setVotedChoiceIdLocal(null);
+      setIsAdvancing(false);
     } else if (gameState?.phase === 'FINAL_PODIUM') {
       sounds.playVictory();
       confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
@@ -24,23 +33,30 @@ export const FibbageView: React.FC = () => {
 
   const handleSubmitBluff = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!bluffInput.trim() || !socket) return;
+    if (!bluffInput.trim() || !socket || isSubmittedBluffLocal) return;
+    setIsSubmittedBluffLocal(true);
     socket.emit('fibbage:submit_bluff', { bluffText: bluffInput.trim() });
     sounds.playSuccess();
   };
 
   const handleVoteChoice = (choiceId: string) => {
-    if (!socket || gameState.phase !== 'CHOOSING') return;
+    if (!socket || gameState.phase !== 'CHOOSING' || votedChoiceIdLocal || gameState.hasVoted) return;
+    setVotedChoiceIdLocal(choiceId);
     socket.emit('fibbage:vote_choice', { choiceId });
     sounds.playClick();
   };
 
   const handleNextRound = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('fibbage:next_round');
       sounds.playClick();
     }
   };
+
+  const isSubmittedBluff = Boolean(gameState.hasSubmittedBluff || isSubmittedBluffLocal);
+  const currentVoteId = votedChoiceIdLocal || gameState.myVote;
+  const hasVotedAny = Boolean(gameState.hasVoted || votedChoiceIdLocal);
 
   return (
     <div className="min-h-screen flex flex-col justify-between p-4 max-w-lg mx-auto pb-24 text-center">
@@ -66,7 +82,7 @@ export const FibbageView: React.FC = () => {
               "{gameState.question}"
             </h3>
 
-            {!gameState.hasSubmittedBluff ? (
+            {!isSubmittedBluff ? (
               <form onSubmit={handleSubmitBluff} className="flex flex-col gap-3">
                 <input
                   type="text"
@@ -78,16 +94,20 @@ export const FibbageView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!bluffInput.trim()}
-                  className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"
                 >
                   ¡Enviar mi Mentira!
                 </button>
               </form>
             ) : (
-              <div className="py-4 flex flex-col items-center gap-2">
-                <Sparkles className="w-10 h-10 text-violet-400 animate-spin" />
-                <p className="text-sm font-bold text-white">¡Mentira registrada!</p>
-                <p className="text-xs text-slate-400">Esperando que todos tus amigos inventen la suya...</p>
+              <div className="py-4 flex flex-col items-center gap-2 animate-fade-in">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-extrabold">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>✓ Enviado</span>
+                </div>
+                <p className="text-xs text-slate-300 font-medium animate-pulse mt-1">
+                  Esperando a los demás jugadores...
+                </p>
               </div>
             )}
           </div>
@@ -105,13 +125,13 @@ export const FibbageView: React.FC = () => {
           <div className="flex flex-col gap-2">
             {(gameState.choices || []).map((c) => {
               const isMine = c.isMine;
-              const isSelected = gameState.myVote === c.id;
+              const isSelected = currentVoteId === c.id;
 
               return (
                 <button
                   key={c.id}
                   type="button"
-                  disabled={isMine || gameState.hasVoted}
+                  disabled={isMine || hasVotedAny}
                   onClick={() => handleVoteChoice(c.id)}
                   className={`p-3.5 rounded-2xl border-2 font-bold text-sm transition-all flex items-center justify-between ${
                     isMine
@@ -123,11 +143,20 @@ export const FibbageView: React.FC = () => {
                 >
                   <span>{c.text}</span>
                   {isMine && <span className="text-[10px] text-violet-400 font-semibold">(Tu mentira)</span>}
-                  {isSelected && <span className="text-[10px] bg-violet-500 text-white px-2 py-0.5 rounded-full">Tu Voto</span>}
+                  {isSelected && <span className="text-[10px] bg-emerald-500 text-white font-extrabold px-2 py-0.5 rounded-full">✓ Voto Enviado</span>}
                 </button>
               );
             })}
           </div>
+
+          {hasVotedAny && (
+            <div className="mt-2 py-2 px-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-center gap-2 animate-pulse">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-emerald-300 font-bold">
+                Voto registrado • Esperando a los demás jugadores...
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -195,10 +224,11 @@ export const FibbageView: React.FC = () => {
           {isHost ? (
             <button
               type="button"
+              disabled={isAdvancing}
               onClick={handleNextRound}
-              className="mt-2 w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
+              className="mt-2 w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-75 transition-all"
             >
-              Siguiente Ronda <ArrowRight className="w-4 h-4" />
+              {isAdvancing ? 'Avanzando...' : 'Siguiente Ronda'} <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
             <p className="text-xs text-slate-400 animate-pulse">Esperando al anfitrión...</p>

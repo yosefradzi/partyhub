@@ -20,32 +20,44 @@ export const MostLikelyView: React.FC = () => {
   const gameState = room?.gameState as MostLikelyState | null;
 
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [isSubmittedPromptLocal, setIsSubmittedPromptLocal] = useState<boolean>(false);
+  const [votedPlayerIdLocal, setVotedPlayerIdLocal] = useState<string | null>(null);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
 
   useEffect(() => {
-    if (gameState?.phase === 'FINAL_PODIUM') {
+    if (gameState?.phase === 'SUBMIT_PROMPTS') {
+      setIsSubmittedPromptLocal(false);
+      setVotedPlayerIdLocal(null);
+      setIsAdvancing(false);
+    } else if (gameState?.phase === 'VOTING') {
+      setVotedPlayerIdLocal(null);
+      setIsAdvancing(false);
+    } else if (gameState?.phase === 'FINAL_PODIUM') {
       sounds.playVictory();
       confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
     }
-  }, [gameState?.phase]);
+  }, [gameState?.phase, gameState?.currentQuestionIndex]);
 
   if (!gameState || !room) return null;
 
   const handleSubmitPrompt = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customPrompt.trim() || !socket) return;
+    if (!customPrompt.trim() || !socket || isSubmittedPromptLocal) return;
+    setIsSubmittedPromptLocal(true);
     socket.emit('mostlikely:submit_prompt', { text: customPrompt.trim() });
-    setCustomPrompt('');
     sounds.playSuccess();
   };
 
   const handleVote = (targetPlayerId: string) => {
-    if (!socket || gameState.phase !== 'VOTING') return;
+    if (!socket || gameState.phase !== 'VOTING' || votedPlayerIdLocal || gameState.hasVoted) return;
+    setVotedPlayerIdLocal(targetPlayerId);
     socket.emit('mostlikely:vote', { targetPlayerId });
     sounds.playClick();
   };
 
   const handleNextQuestion = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('mostlikely:next_question');
       sounds.playClick();
     }
@@ -68,7 +80,7 @@ export const MostLikelyView: React.FC = () => {
             Tiempo restante: {gameState.secondsRemaining}s
           </div>
 
-          {!gameState.hasSubmittedPrompt ? (
+          {!Boolean(gameState.hasSubmittedPrompt || isSubmittedPromptLocal) ? (
             <form onSubmit={handleSubmitPrompt} className="flex flex-col gap-3">
               <div className="text-left">
                 <label className="text-xs font-bold text-slate-300 block mb-1">
@@ -106,16 +118,20 @@ export const MostLikelyView: React.FC = () => {
               <button
                 type="submit"
                 disabled={!customPrompt.trim()}
-                className="mt-2 w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                className="mt-2 w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"
               >
                 <PlusCircle className="w-4 h-4" /> Guardar mi Pregunta
               </button>
             </form>
           ) : (
-            <div className="py-6 flex flex-col items-center gap-2">
-              <CheckCircle className="w-12 h-12 text-emerald-400 animate-bounce" />
-              <p className="text-sm font-bold text-white">¡Pregunta guardada!</p>
-              <p className="text-xs text-slate-400">Esperando que todos tus amigos terminen...</p>
+            <div className="py-6 flex flex-col items-center gap-2 animate-fade-in">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-extrabold">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>✓ Enviada</span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium animate-pulse mt-1">
+                Esperando a los demás jugadores...
+              </p>
             </div>
           )}
         </div>
@@ -158,11 +174,15 @@ export const MostLikelyView: React.FC = () => {
           </p>
           <div className="grid grid-cols-2 gap-2.5">
             {room.players.map((p) => {
-              const isSelected = gameState.myVote === p.id;
+              const currentVotedId = votedPlayerIdLocal || gameState.myVote;
+              const isSelected = currentVotedId === p.id;
+              const hasVotedAny = Boolean(gameState.hasVoted || votedPlayerIdLocal);
+
               return (
                 <button
                   key={p.id}
                   type="button"
+                  disabled={hasVotedAny}
                   onClick={() => handleVote(p.id)}
                   className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${
                     isSelected
@@ -173,14 +193,23 @@ export const MostLikelyView: React.FC = () => {
                   <span className="text-4xl">{p.avatar}</span>
                   <span className="text-xs font-bold text-white truncate max-w-full">{p.name}</span>
                   {isSelected && (
-                    <span className="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-black">
-                      Tu Elección
+                    <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black">
+                      ✓ Voto Registrado
                     </span>
                   )}
                 </button>
               );
             })}
           </div>
+
+          {Boolean(gameState.hasVoted || votedPlayerIdLocal) && (
+            <div className="mt-3 py-2 px-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-center gap-2 animate-pulse">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-emerald-300 font-bold">
+                Voto registrado • Esperando a los demás jugadores...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -244,10 +273,11 @@ export const MostLikelyView: React.FC = () => {
         {isHost ? (
           <button
             type="button"
+            disabled={isAdvancing}
             onClick={handleNextQuestion}
-            className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-75 transition-all"
           >
-            Siguiente Pregunta <ArrowRight className="w-4 h-4" />
+            {isAdvancing ? 'Avanzando...' : 'Siguiente Pregunta'} <ArrowRight className="w-4 h-4" />
           </button>
         ) : (
           <p className="text-xs text-slate-400 animate-pulse">Esperando al anfitrión...</p>

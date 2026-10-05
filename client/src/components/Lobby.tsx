@@ -111,6 +111,58 @@ export const Lobby: React.FC = () => {
         </button>
       </div>
 
+      {/* Selected Game Showcase Card at Top */}
+      {(() => {
+        const selectedGameDef = ALL_GAMES.find((g) => g.id === room.selectedGame) || ALL_GAMES[0];
+        return (
+          <div className="w-full glass-panel rounded-3xl p-4 shadow-xl mb-4 border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-slate-900/60 to-purple-950/30 flex-shrink-0 animate-fade-in">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Juego Seleccionado • {selectedGameDef.category}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                {selectedGameDef.recommendedPlayers}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl p-2 rounded-2xl bg-slate-800/80 border border-slate-700/60">
+                {selectedGameDef.emoji}
+              </span>
+              <div>
+                <h3 className="text-lg font-black text-white leading-tight">
+                  {selectedGameDef.name}
+                </h3>
+                <p className="text-xs text-slate-300 font-medium leading-snug">
+                  {selectedGameDef.tagline}
+                </p>
+              </div>
+            </div>
+
+            {/* ¿Cómo se juega? Rules */}
+            <div className="mt-3 pt-3 border-t border-slate-800/80">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-400 mb-2 flex items-center gap-1.5">
+                <span>📖</span> ¿Cómo se juega?
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {selectedGameDef.howToPlay && selectedGameDef.howToPlay.length > 0 ? (
+                  selectedGameDef.howToPlay.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs text-slate-200">
+                      <span className="w-4 h-4 rounded-full bg-indigo-500/30 text-indigo-300 font-bold flex items-center justify-center flex-shrink-0 text-[10px] mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="leading-snug">{step}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-300 leading-snug">{selectedGameDef.description}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Players Section */}
       <div className="w-full mb-4 flex-shrink-0">
         <div className="flex items-center justify-between mb-2 px-1">

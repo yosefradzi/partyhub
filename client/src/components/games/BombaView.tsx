@@ -10,6 +10,7 @@ export const BombaView: React.FC = () => {
 
   const [inputWord, setInputWord] = useState<string>('');
   const [feedbackError, setFeedbackError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (gameState?.phase === 'PLAYING') {
@@ -26,11 +27,13 @@ export const BombaView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputWord.trim() || !isMyTurn) return;
+    if (!inputWord.trim() || !isMyTurn || isSubmitting) return;
     setFeedbackError('');
+    setIsSubmitting(true);
 
     if (socket) {
       socket.emit('bomba:submit_word', { word: inputWord.trim() }, (res: { success: boolean; reason?: string }) => {
+        setIsSubmitting(false);
         if (res.success) {
           setInputWord('');
           sounds.playSuccess();
@@ -39,6 +42,8 @@ export const BombaView: React.FC = () => {
           sounds.playError();
         }
       });
+    } else {
+      setIsSubmitting(false);
     }
   };
 
@@ -142,10 +147,11 @@ export const BombaView: React.FC = () => {
                 />
                 <button
                   type="submit"
-                  className="px-5 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold rounded-2xl flex items-center justify-center gap-1.5 shadow-lg active:scale-95"
+                  disabled={isSubmitting}
+                  className="px-5 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold rounded-2xl flex items-center justify-center gap-1.5 shadow-lg active:scale-95 disabled:opacity-75"
                 >
                   <Send className="w-4 h-4" />
-                  Pasar
+                  {isSubmitting ? 'Verificando...' : 'Pasar'}
                 </button>
               </div>
             </form>

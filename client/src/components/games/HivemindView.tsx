@@ -10,10 +10,14 @@ export const HivemindView: React.FC = () => {
   const gameState = room?.gameState as HivemindState | null;
 
   const [inputAnswer, setInputAnswer] = useState<string>('');
+  const [isSubmittedLocal, setIsSubmittedLocal] = useState<boolean>(false);
+  const [isAdvancing, setIsAdvancing] = useState<boolean>(false);
 
   useEffect(() => {
     if (gameState?.phase === 'THINKING') {
       setInputAnswer('');
+      setIsSubmittedLocal(false);
+      setIsAdvancing(false);
     } else if (gameState?.phase === 'FINAL_PODIUM') {
       sounds.playVictory();
       confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
@@ -24,17 +28,21 @@ export const HivemindView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputAnswer.trim() || !socket) return;
+    if (!inputAnswer.trim() || !socket || isSubmittedLocal) return;
+    setIsSubmittedLocal(true);
     socket.emit('hivemind:submit_answer', { answer: inputAnswer.trim() });
     sounds.playSuccess();
   };
 
   const handleNextRound = () => {
-    if (socket && isHost) {
+    if (socket && isHost && !isAdvancing) {
+      setIsAdvancing(true);
       socket.emit('hivemind:next_round');
       sounds.playClick();
     }
   };
+
+  const isSubmitted = Boolean(gameState.hasSubmitted || isSubmittedLocal);
 
   const sortedPlayers = [...room.players].sort((a, b) => {
     const sA = gameState.cumulativeScores[a.id] || 0;
@@ -66,7 +74,7 @@ export const HivemindView: React.FC = () => {
               "{gameState.currentQuestion}"
             </h3>
 
-            {!gameState.hasSubmitted ? (
+            {!isSubmitted ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                 <input
                   type="text"
@@ -79,16 +87,20 @@ export const HivemindView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!inputAnswer.trim()}
-                  className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"
                 >
                   <Send className="w-4 h-4" /> Enviar Respuesta
                 </button>
               </form>
             ) : (
-              <div className="py-4 flex flex-col items-center gap-2">
-                <CheckCircle className="w-12 h-12 text-emerald-400 animate-bounce" />
-                <p className="text-sm font-bold text-white">¡Respuesta enviada!</p>
-                <p className="text-xs text-slate-400">Esperando que todos envíen...</p>
+              <div className="py-4 flex flex-col items-center gap-2 animate-fade-in">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-extrabold">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>✓ Enviado</span>
+                </div>
+                <p className="text-xs text-slate-300 font-medium animate-pulse mt-1">
+                  Esperando a los demás jugadores...
+                </p>
               </div>
             )}
           </div>
@@ -147,10 +159,11 @@ export const HivemindView: React.FC = () => {
           {isHost ? (
             <button
               type="button"
+              disabled={isAdvancing}
               onClick={handleNextRound}
-              className="mt-3 w-full py-4 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2"
+              className="mt-3 w-full py-4 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-black text-sm uppercase tracking-wider rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-75 transition-all"
             >
-              Siguiente Ronda <ArrowRight className="w-4 h-4" />
+              {isAdvancing ? 'Avanzando...' : 'Siguiente Ronda'} <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
             <p className="text-xs text-slate-400 mt-2 animate-pulse">Esperando al anfitrión...</p>

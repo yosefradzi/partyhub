@@ -17,12 +17,14 @@ export const GarticView: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>('#000000');
   const [brushSize, setBrushSize] = useState<number>(6);
   const [history, setHistory] = useState<ImageData[]>([]);
+  const [isSubmittedLocal, setIsSubmittedLocal] = useState<boolean>(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef<boolean>(false);
 
   // Initialize and clear canvas when a drawing step starts
   useEffect(() => {
+    setIsSubmittedLocal(false);
     if (gameState?.isDrawing && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
@@ -32,7 +34,7 @@ export const GarticView: React.FC = () => {
         setHistory([ctx.getImageData(0, 0, canvas.width, canvas.height)]);
       }
     }
-  }, [gameState?.currentStep, gameState?.isDrawing]);
+  }, [gameState?.currentStep, gameState?.isDrawing, gameState?.phase]);
 
   // Tick sound
   useEffect(() => {
@@ -140,13 +142,15 @@ export const GarticView: React.FC = () => {
   // Submissions
   const handleSubmitPrompt = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!initialPrompt.trim() || !socket) return;
+    if (!initialPrompt.trim() || !socket || isSubmittedLocal) return;
+    setIsSubmittedLocal(true);
     socket.emit('gartic:submit_prompt', { text: initialPrompt.trim() });
     sounds.playSuccess();
   };
 
   const handleSubmitDrawing = () => {
-    if (!canvasRef.current || !socket) return;
+    if (!canvasRef.current || !socket || isSubmittedLocal) return;
+    setIsSubmittedLocal(true);
     const dataUrl = canvasRef.current.toDataURL('image/png');
     socket.emit('gartic:submit_content', { content: dataUrl });
     sounds.playSuccess();
@@ -154,7 +158,8 @@ export const GarticView: React.FC = () => {
 
   const handleSubmitGuess = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!guessInput.trim() || !socket) return;
+    if (!guessInput.trim() || !socket || isSubmittedLocal) return;
+    setIsSubmittedLocal(true);
     socket.emit('gartic:submit_content', { content: guessInput.trim() });
     setGuessInput('');
     sounds.playSuccess();
@@ -192,7 +197,7 @@ export const GarticView: React.FC = () => {
             <Sparkles className="w-4 h-4" /> Tiempo restante: {gameState.secondsRemaining}s
           </div>
 
-          {!gameState.hasSubmitted ? (
+          {!Boolean(gameState.hasSubmitted || isSubmittedLocal) ? (
             <form onSubmit={handleSubmitPrompt} className="flex flex-col gap-3">
               <textarea
                 rows={3}
@@ -205,17 +210,21 @@ export const GarticView: React.FC = () => {
               <button
                 type="submit"
                 disabled={!initialPrompt.trim()}
-                className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"
               >
                 <Send className="w-4 h-4" />
                 ¡Enviar Frase!
               </button>
             </form>
           ) : (
-            <div className="py-8 flex flex-col items-center gap-2">
-              <CheckCircle className="w-12 h-12 text-emerald-400 animate-bounce" />
-              <p className="text-base font-bold text-white">¡Frase enviada con éxito!</p>
-              <p className="text-xs text-slate-400">Esperando que todos tus amigos envíen la suya...</p>
+            <div className="py-8 flex flex-col items-center gap-2 animate-fade-in">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-sm font-extrabold">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <span>✓ Enviado</span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium animate-pulse mt-1">
+                Esperando a los demás jugadores...
+              </p>
             </div>
           )}
         </div>
@@ -351,25 +360,26 @@ export const GarticView: React.FC = () => {
             )}
 
             {/* Submit Button */}
-            {!gameState.hasSubmitted ? (
+            {!Boolean(gameState.hasSubmitted || isSubmittedLocal) ? (
               <button
                 type="button"
                 onClick={handleSubmitDrawing}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
               >
                 <CheckCircle className="w-5 h-5" />
                 ¡Enviar mi Dibujo!
               </button>
             ) : (
-              <div className="p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-center text-xs font-bold text-emerald-300">
-                ✅ Dibujo enviado. Esperando a los demás...
+              <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-center flex flex-col items-center gap-1 animate-pulse">
+                <span className="text-xs font-black text-emerald-300">✓ Dibujo enviado</span>
+                <span className="text-[11px] text-slate-300">Esperando a los demás jugadores...</span>
               </div>
             )}
           </div>
         ) : (
           /* Guess input form */
           <div className="flex flex-col gap-3">
-            {!gameState.hasSubmitted ? (
+            {!Boolean(gameState.hasSubmitted || isSubmittedLocal) ? (
               <form onSubmit={handleSubmitGuess} className="flex flex-col gap-2">
                 <input
                   type="text"
@@ -382,15 +392,16 @@ export const GarticView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!guessInput.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-all"
                 >
                   <Send className="w-4 h-4" />
                   ¡Enviar Adivinanza!
                 </button>
               </form>
             ) : (
-              <div className="p-4 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-center text-xs font-bold text-emerald-300">
-                ✅ Adivinanza enviada. Esperando a los demás...
+              <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl text-center flex flex-col items-center gap-1 animate-pulse">
+                <span className="text-xs font-black text-emerald-300">✓ Adivinanza enviada</span>
+                <span className="text-[11px] text-slate-300">Esperando a los demás jugadores...</span>
               </div>
             )}
           </div>

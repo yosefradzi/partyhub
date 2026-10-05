@@ -48,6 +48,9 @@ export class MostLikelyGame {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('mostlikely:tick', {
         secondsRemaining: this.secondsRemaining,
         phase: this.phase
@@ -71,6 +74,7 @@ export class MostLikelyGame {
     if (!this.playerPrompts[playerId]) this.playerPrompts[playerId] = [];
     this.playerPrompts[playerId].push(cleanText);
     this.room.broadcastPlayerProgress(playerId, 1);
+    this.room.broadcastState();
 
     // If all players submitted at least 1 prompt
     const allSubmitted = Array.from(this.room.players.keys()).every(pid => (this.playerPrompts[pid] || []).length >= 1);
@@ -141,6 +145,9 @@ export class MostLikelyGame {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('mostlikely:tick', {
         secondsRemaining: this.secondsRemaining,
         phase: this.phase
@@ -160,6 +167,7 @@ export class MostLikelyGame {
     if (this.phase !== 'VOTING') return;
     this.votes[voterId] = targetPlayerId;
     this.room.broadcastPlayerProgress(voterId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.votes).length >= this.room.players.size) {
       if (this.timer) clearInterval(this.timer);
@@ -201,6 +209,11 @@ export class MostLikelyGame {
 
   getStateForPlayer(playerId) {
     const currentQ = this.questionsQueue[this.currentQuestionIndex] || null;
+    const completedPlayerIds = this.phase === 'SUBMIT_PROMPTS'
+      ? Object.keys(this.playerPrompts).filter(pid => (this.playerPrompts[pid] || []).length > 0)
+      : this.phase === 'VOTING'
+      ? Object.keys(this.votes)
+      : [];
 
     return {
       gameId: this.id,
@@ -218,7 +231,8 @@ export class MostLikelyGame {
       votes: this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM' ? this.votes : (this.votes[playerId] ? { [playerId]: this.votes[playerId] } : {}),
       voteCounts: this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM' ? this.voteCounts : {},
       mostVotedPlayerId: this.mostVotedPlayerId,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds
     };
   }
 }

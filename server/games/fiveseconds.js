@@ -78,6 +78,9 @@ export class FiveSecondsGame {
 
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('fiveseconds:tick', {
         secondsRemaining: this.secondsRemaining
       });
@@ -157,7 +160,8 @@ export class FiveSecondsGame {
       secondsRemaining: this.secondsRemaining,
       votes: this.phase === 'VOTING' || this.phase === 'TURN_RESULT' ? this.votes : {},
       turnApproved: this.turnApproved,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds: this.phase === 'VOTING' ? Object.keys(this.votes) : (this.phase === 'COUNTDOWN' || this.phase === 'GET_READY' ? [activePid] : [])
     };
   }
 }

@@ -99,6 +99,15 @@ io.on('connection', (socket) => {
     }
   });
 
+  // SKIP INTRO (Any player in the room)
+  socket.on('room:skip_intro', () => {
+    const code = socket.data.roomCode;
+    const room = roomManager.getRoom(code);
+    if (room) {
+      room.skipIntro(socket.id);
+    }
+  });
+
   // REACTIONS & CHAT
   socket.on('room:reaction', ({ emoji }) => {
     const code = socket.data.roomCode;

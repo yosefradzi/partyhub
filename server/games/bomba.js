@@ -58,6 +58,9 @@ export class BombaGame {
 
     this.bombTimer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('bomba:tick', {
         secondsRemaining: this.secondsRemaining,
         activePlayerId: this.getActivePlayerId()
@@ -164,7 +167,8 @@ export class BombaGame {
       loserId: this.loserId,
       winnerId: this.winnerId,
       isMyTurn: playerId === this.getActivePlayerId(),
-      usedWordsCount: this.usedWords.size
+      usedWordsCount: this.usedWords.size,
+      completedPlayerIds: this.getActivePlayerId() ? [this.getActivePlayerId()] : []
     };
   }
 }

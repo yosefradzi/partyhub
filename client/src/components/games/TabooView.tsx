@@ -26,8 +26,15 @@ export const TabooView: React.FC = () => {
   const activePlayer = room.players.find(p => p.id === gameState.activePlayerId);
   const card = gameState.currentCard;
 
+  const [isAdvancing, setIsAdvancing] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    setIsAdvancing(false);
+  }, [gameState?.phase, gameState?.activePlayerId]);
+
   const handleStartTimer = () => {
-    if (!socket) return;
+    if (!socket || isAdvancing) return;
+    setIsAdvancing(true);
     socket.emit('taboo:start_timer');
     sounds.playLetterReveal();
   };
@@ -51,7 +58,8 @@ export const TabooView: React.FC = () => {
   };
 
   const handleNextTurn = () => {
-    if (!socket || !isHost) return;
+    if (!socket || !isHost || isAdvancing) return;
+    setIsAdvancing(true);
     socket.emit('taboo:next_turn');
     sounds.playClick();
   };
@@ -196,10 +204,11 @@ export const TabooView: React.FC = () => {
             {isHost ? (
               <button
                 type="button"
+                disabled={isAdvancing}
                 onClick={handleNextTurn}
-                className="mt-3 w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                className="mt-3 w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-75"
               >
-                Siguiente Turno <ArrowRight className="w-4 h-4" />
+                {isAdvancing ? 'Avanzando...' : 'Siguiente Turno'} <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <p className="text-xs text-slate-400 animate-pulse mt-3">

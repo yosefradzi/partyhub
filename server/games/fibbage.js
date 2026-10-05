@@ -96,6 +96,9 @@ export class FibbageGame {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('fibbage:tick', {
         secondsRemaining: this.secondsRemaining,
         phase: this.phase
@@ -118,6 +121,7 @@ export class FibbageGame {
 
     this.bluffs[playerId] = clean;
     this.room.broadcastPlayerProgress(playerId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.bluffs).length >= this.room.players.size) {
       if (this.timer) clearInterval(this.timer);
@@ -159,6 +163,9 @@ export class FibbageGame {
     if (this.timer) clearInterval(this.timer);
     this.timer = setInterval(() => {
       this.secondsRemaining -= 1;
+      this.room.io.to(this.room.code).emit('game:tick', {
+        secondsRemaining: this.secondsRemaining
+      });
       this.room.io.to(this.room.code).emit('fibbage:tick', {
         secondsRemaining: this.secondsRemaining,
         phase: this.phase
@@ -182,6 +189,7 @@ export class FibbageGame {
 
     this.votes[voterId] = choiceId;
     this.room.broadcastPlayerProgress(voterId, 1);
+    this.room.broadcastState();
 
     if (Object.keys(this.votes).length >= this.room.players.size) {
       if (this.timer) clearInterval(this.timer);
@@ -222,6 +230,12 @@ export class FibbageGame {
   }
 
   getStateForPlayer(playerId) {
+    const completedPlayerIds = this.phase === 'BLUFFING'
+      ? Object.keys(this.bluffs)
+      : this.phase === 'CHOOSING'
+      ? Object.keys(this.votes)
+      : [];
+
     return {
       gameId: this.id,
       name: this.name,
@@ -241,7 +255,8 @@ export class FibbageGame {
       truth: (this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM') && this.currentFact ? this.currentFact.truth : null,
       votes: (this.phase === 'REVEAL' || this.phase === 'FINAL_PODIUM') ? this.votes : (this.votes[playerId] ? { [playerId]: this.votes[playerId] } : {}),
       roundScores: this.roundScores,
-      cumulativeScores: this.cumulativeScores
+      cumulativeScores: this.cumulativeScores,
+      completedPlayerIds
     };
   }
 }

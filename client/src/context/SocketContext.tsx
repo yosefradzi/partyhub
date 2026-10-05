@@ -18,6 +18,7 @@ interface SocketContextValue {
   updateSettings: (settings: Partial<RoomState['settings']>) => void;
   startGame: () => void;
   returnToLobby: () => void;
+  skipIntro: () => void;
   sendReaction: (emoji: string) => void;
   sendMessage: (text: string) => void;
 }
@@ -49,6 +50,77 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     newSocket.on('room:state', (roomData: RoomState) => {
       setRoom(roomData);
+    });
+
+    // Handle universal countdown timer ticks
+    const handleGameTick = (data: { secondsRemaining: number }) => {
+      setRoom((prev) => {
+        if (!prev || !prev.gameState) return prev;
+        return {
+          ...prev,
+          gameState: {
+            ...prev.gameState,
+            secondsRemaining: data.secondsRemaining
+          }
+        };
+      });
+    };
+
+    newSocket.on('game:tick', handleGameTick);
+    newSocket.on('hivemind:tick', handleGameTick);
+    newSocket.on('fibbage:tick', handleGameTick);
+    newSocket.on('gartic:tick', handleGameTick);
+    newSocket.on('taboo:tick', handleGameTick);
+    newSocket.on('fiveseconds:tick', handleGameTick);
+    newSocket.on('mostlikely:tick', handleGameTick);
+    newSocket.on('bomba:tick', handleGameTick);
+
+    // Tutti Frutti stop countdown
+    newSocket.on('tutifruti:countdown', (data: { seconds: number; caller?: any }) => {
+      setRoom((prev) => {
+        if (!prev || !prev.gameState) return prev;
+        return {
+          ...prev,
+          gameState: {
+            ...prev.gameState,
+            countdownSeconds: data.seconds,
+            ...(data.caller ? { stopCaller: data.caller } : {})
+          }
+        };
+      });
+    });
+
+    // Intro screen 10s countdown & skips
+    newSocket.on('intro:tick', (data: { secondsRemaining: number }) => {
+      setRoom((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          introState: prev.introState ? {
+            ...prev.introState,
+            secondsRemaining: data.secondsRemaining
+          } : {
+            active: true,
+            secondsRemaining: data.secondsRemaining,
+            skips: [],
+            totalPlayers: prev.players.length
+          }
+        };
+      });
+    });
+
+    newSocket.on('intro:skip_update', (data: { skips: string[]; totalPlayers: number }) => {
+      setRoom((prev) => {
+        if (!prev || !prev.introState) return prev;
+        return {
+          ...prev,
+          introState: {
+            ...prev.introState,
+            skips: data.skips,
+            totalPlayers: data.totalPlayers
+          }
+        };
+      });
     });
 
     newSocket.on('room:reaction', (reaction: { playerId: string; playerName: string; emoji: string }) => {
@@ -136,6 +208,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const skipIntro = () => {
+    if (socket) {
+      socket.emit('room:skip_intro');
+      sounds.playClick();
+    }
+  };
+
   const sendReaction = (emoji: string) => {
     if (socket && room) {
       socket.emit('room:reaction', { emoji });
@@ -166,6 +245,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateSettings,
         startGame,
         returnToLobby,
+        skipIntro,
         sendReaction,
         sendMessage
       }}

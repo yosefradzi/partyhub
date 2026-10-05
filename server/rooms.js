@@ -28,6 +28,10 @@ export class Room {
     this.selectedGame = 'tutifruti'; // 'tutifruti' | 'impostor' | 'bomba'
     this.status = 'LOBBY'; // 'LOBBY' | 'PLAYING'
     this.gameInstance = null;
+    this.introActive = false;
+    this.introSeconds = 10;
+    this.introSkips = new Set(); // Set of socketIds who voted to skip
+    this.introTimer = null;
     this.settings = {
       rounds: 3,
       roundDuration: 90,
@@ -62,6 +66,7 @@ export class Room {
 
   removePlayer(socketId) {
     this.players.delete(socketId);
+    this.introSkips.delete(socketId);
     
     // If host left, assign new host
     if (this.hostId === socketId && this.players.size > 0) {
@@ -73,9 +78,17 @@ export class Room {
     }
 
     if (this.players.size === 0) {
+      if (this.introTimer) clearInterval(this.introTimer);
       if (this.gameInstance?.countdownTimer) clearInterval(this.gameInstance.countdownTimer);
       if (this.gameInstance?.bombTimer) clearInterval(this.gameInstance.bombTimer);
+      if (this.gameInstance?.timer) clearInterval(this.gameInstance.timer);
       return false; // Room is empty, can be deleted
+    }
+
+    // If waiting on skips and now everyone remaining has skipped
+    if (this.introActive && this.players.size > 0 && this.introSkips.size >= this.players.size) {
+      this.finishIntro();
+      return true;
     }
 
     this.broadcastState();
@@ -95,7 +108,52 @@ export class Room {
 
   startGame() {
     this.status = 'PLAYING';
+    this.introActive = true;
+    this.introSeconds = 10;
+    this.introSkips = new Set();
     
+    if (this.introTimer) clearInterval(this.introTimer);
+    
+    this.broadcastState();
+
+    this.introTimer = setInterval(() => {
+      this.introSeconds -= 1;
+      this.io.to(this.code).emit('intro:tick', { secondsRemaining: this.introSeconds });
+
+      if (this.introSeconds <= 0) {
+        this.finishIntro();
+      }
+    }, 1000);
+  }
+
+  skipIntro(playerId) {
+    if (!this.introActive) return;
+    this.introSkips.add(playerId);
+    
+    this.io.to(this.code).emit('intro:skip_update', {
+      skips: Array.from(this.introSkips),
+      totalPlayers: this.players.size
+    });
+
+    if (this.introSkips.size >= this.players.size) {
+      this.finishIntro();
+    }
+  }
+
+  finishIntro() {
+    if (!this.introActive) return;
+    if (this.introTimer) {
+      clearInterval(this.introTimer);
+      this.introTimer = null;
+    }
+    this.introActive = false;
+    this.introSeconds = 0;
+    this.introSkips.clear();
+
+    this.launchGameInstance();
+  }
+
+  launchGameInstance() {
     if (this.selectedGame === 'tutifruti') {
       const categories = this.settings.customCategories && this.settings.customCategories.length > 0 
         ? this.settings.customCategories 
@@ -124,10 +182,17 @@ export class Room {
 
     if (this.gameInstance) {
       this.gameInstance.start();
+    } else {
+      this.broadcastState();
     }
   }
 
   returnToLobby() {
+    if (this.introTimer) clearInterval(this.introTimer);
+    this.introActive = false;
+    this.introSeconds = 0;
+    this.introSkips.clear();
+
     if (this.gameInstance?.countdownTimer) clearInterval(this.gameInstance.countdownTimer);
     if (this.gameInstance?.bombTimer) clearInterval(this.gameInstance.bombTimer);
     if (this.gameInstance?.timer) clearInterval(this.gameInstance.timer);
@@ -185,7 +250,13 @@ export class Room {
         selectedGame: this.selectedGame,
         status: this.status,
         settings: this.settings,
-        gameState: this.gameInstance ? this.gameInstance.getStateForPlayer(socketId) : null
+        gameState: this.gameInstance ? this.gameInstance.getStateForPlayer(socketId) : null,
+        introState: this.introActive ? {
+          active: true,
+          secondsRemaining: this.introSeconds,
+          skips: Array.from(this.introSkips),
+          totalPlayers: this.players.size
+        } : null
       };
 
       socket.emit('room:state', playerState);

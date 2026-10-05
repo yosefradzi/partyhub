@@ -157,7 +157,8 @@ export class ImpostorGame {
       caughtImpostor: this.caughtImpostor,
       guessCorrect: this.guessCorrect,
       impostorGuess: this.impostorGuess,
-      scores: this.scores
+      scores: this.scores,
+      completedPlayerIds: this.phase === 'VOTING' ? Object.keys(this.votes) : []
     };
   }
 }

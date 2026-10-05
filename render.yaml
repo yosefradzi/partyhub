@@ -6,6 +6,7 @@ services:
     region: oregon
     buildCommand: npm install
     startCommand: node server/index.js
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: 22.14.0
